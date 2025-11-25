@@ -31,16 +31,31 @@ async function run() {
     await client.connect();
     const database = client.db("ZapShift");
     const parcelsCollection = database.collection("parcels");
-
-      app.post('/parcels', async (req, res) => {
-          const parcel = req.body
-          const result = await parcelsCollection.insertOne(parcel)
-          res.send(result)
-      })
+    // post parcel data into Database
+    app.post("/parcels", async (req, res) => {
+      const parcel = req.body;
+      const result = await parcelsCollection.insertOne(parcel);
+      res.send(result);
+    });
+    // get parcel data from Database
+    app.get("/parcels", async (req, res) => {
+      const query = {};
+      // find data with conditions
+      const { email } = req.query;
+      // /parcels?email=''&
+      if (email) {
+        query.senderEmail = email;
+      }
+      // --- end conditons for email get data
+      const cursor = parcelsCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("✅ Successfully connected to MongoDB!");
-  } finally {}
+  } finally {
+  }
 }
 run().catch(console.dir);
 
