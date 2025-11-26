@@ -13,7 +13,7 @@ app.use(cors());
 
 // MongoDB start here
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_NAME}:${process.env.DB_PASS}@mohyminulislam.uwhwdlk.mongodb.net/?appName=Mohyminulislam`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -34,6 +34,7 @@ async function run() {
     // post parcel data into Database
     app.post("/parcels", async (req, res) => {
       const parcel = req.body;
+      parcel.createdAt = new Date();
       const result = await parcelsCollection.insertOne(parcel);
       res.send(result);
     });
@@ -46,11 +47,21 @@ async function run() {
       if (email) {
         query.senderEmail = email;
       }
+      const options = { sort: { createdAt: -1 } };
       // --- end conditons for email get data
-      const cursor = parcelsCollection.find(query);
+      const cursor = parcelsCollection.find(query, options);
       const result = await cursor.toArray();
       res.send(result);
     });
+
+    // parcel delete options
+    app.delete('/parcels/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      
+      const result = await parcelsCollection.deleteOne(query);
+      res.send(result)
+    })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("✅ Successfully connected to MongoDB!");
