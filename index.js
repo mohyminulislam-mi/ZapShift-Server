@@ -63,16 +63,17 @@ async function run() {
     const usersCollection = database.collection("users");
     const parcelsCollection = database.collection("parcels");
     const paymentCollection = database.collection("payments");
+    const ridersCollection = database.collection("riders");
     // users data into Database
     app.post("/users", async (req, res) => {
       const user = req.body;
       user.role = "user";
       user.createdAt = new Date();
 
-      // exists user checking 
-      const userExists = await usersCollection.findOne({ email })
+      // exists user checking
+      const userExists = await usersCollection.findOne({ email });
       if (userExists) {
-        return res.send({message: 'User Exists'})
+        return res.send({ message: "User Exists" });
       }
       const result = await usersCollection.insertOne(user);
       res.send(result);
@@ -215,6 +216,14 @@ async function run() {
       }
 
       res.send({ success: false });
+    });
+    // rider related apis
+    app.post("/riders", async (req, res) => {
+      const rider = req.body;
+      rider.status = "pending";
+      rider.createdAt = new Date();
+      const result = await ridersCollection.insertOne(rider);
+      res.send(result);
     });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
