@@ -60,8 +60,24 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const database = client.db("ZapShift");
+    const usersCollection = database.collection("users");
     const parcelsCollection = database.collection("parcels");
     const paymentCollection = database.collection("payments");
+    // users data into Database
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      user.role = "user";
+      user.createdAt = new Date();
+
+      // exists user checking 
+      const userExists = await usersCollection.findOne({ email })
+      if (userExists) {
+        return res.send({message: 'User Exists'})
+      }
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+
     // post parcel data into Database
     app.post("/parcels", async (req, res) => {
       const parcel = req.body;
