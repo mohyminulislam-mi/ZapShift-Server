@@ -225,14 +225,40 @@ async function run() {
       const result = await ridersCollection.insertOne(rider);
       res.send(result);
     });
-
+    // rider get apis
     app.get("/riders", async (req, res) => {
       const query = {};
       if (req.query.status) {
-        query.status = req.query.status
+        query.status = req.query.status;
       }
       const cursor = ridersCollection.find(query);
       const result = await cursor.toArray();
+      res.send(result);
+    });
+    // rider patch apis
+    app.patch("/riders/:id", verifyFirebaseToken, async (req, res) => {
+      const status = req.body.status;
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updateStatus = {
+        $set: {
+          status: status,
+        },
+      };
+      const result = await ridersCollection.updateOne(query, updateStatus);
+      if (status === "approved") {
+        const email = req.body.email;
+        const userQuery = { email };
+        const updateUser = {
+          $set: {
+            role: "rider",
+          },
+        };
+        const userResult = await usersCollection.updateOne(
+          userQuery,
+          updateUser
+        );
+      }
       res.send(result);
     });
     // Send a ping to confirm a successful connection
