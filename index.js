@@ -71,7 +71,7 @@ async function run() {
       user.createdAt = new Date();
 
       // exists user checking
-      const userExists = await usersCollection.findOne({ email });
+      const userExists = await usersCollection.findOne({ email: user.email });
       if (userExists) {
         return res.send({ message: "User Exists" });
       }
@@ -96,6 +96,13 @@ async function run() {
       const result = await usersCollection.updateOne(query, updatedDoc);
       res.send(result);
     });
+
+    app.get('/users/:email/role', async (req, res) => {
+      const email = req.params.email;
+      const query = { email }
+      const user = await usersCollection.findOne(query)
+      res.send({ role: user?.role || 'user'})
+    })
 
     // post parcel data into Database
     app.post("/parcels", async (req, res) => {
