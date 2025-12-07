@@ -90,23 +90,42 @@ async function run() {
       res.send(result);
     });
     app.get("/users", verifyFirebaseToken, async (req, res) => {
-      const query = {};
-      const cursor = usersCollection.find(query);
+      const searchItems = req.query.searchText;
+      console.log(searchItems);
+      
+      let query = {};
+      if (searchItems) {
+        query = { $or: [
+          { displayName: { $regex: searchItems, $options: "i" } },
+          { email: { $regex: searchItems, $options: "i" } },
+        ]} ;
+      }
+      console.log(query);
+      
+      const cursor = usersCollection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .limit(2);
       const result = await cursor.toArray();
       res.send(result);
     });
-    app.patch("/users/:id/role", verifyFirebaseToken, verifyAdmin , async (req, res) => {
-      const id = req.params.id;
-      const roleInfo = req.body;
-      const query = { _id: new ObjectId(id) };
-      const updatedDoc = {
-        $set: {
-          role: roleInfo.role,
-        },
-      };
-      const result = await usersCollection.updateOne(query, updatedDoc);
-      res.send(result);
-    });
+    app.patch(
+      "/users/:id/role",
+      verifyFirebaseToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const roleInfo = req.body;
+        const query = { _id: new ObjectId(id) };
+        const updatedDoc = {
+          $set: {
+            role: roleInfo.role,
+          },
+        };
+        const result = await usersCollection.updateOne(query, updatedDoc);
+        res.send(result);
+      }
+    );
 
     app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
@@ -272,31 +291,36 @@ async function run() {
       res.send(result);
     });
     // rider patch apis
-    app.patch("/riders/:id", verifyFirebaseToken, verifyAdmin, async (req, res) => {
-      const status = req.body.status;
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const updateStatus = {
-        $set: {
-          status: status,
-        },
-      };
-      const result = await ridersCollection.updateOne(query, updateStatus);
-      if (status === "approved") {
-        const email = req.body.email;
-        const userQuery = { email };
-        const updateUser = {
+    app.patch(
+      "/riders/:id",
+      verifyFirebaseToken,
+      verifyAdmin,
+      async (req, res) => {
+        const status = req.body.status;
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const updateStatus = {
           $set: {
-            role: "rider",
+            status: status,
           },
         };
-        const userResult = await usersCollection.updateOne(
-          userQuery,
-          updateUser
-        );
+        const result = await ridersCollection.updateOne(query, updateStatus);
+        if (status === "approved") {
+          const email = req.body.email;
+          const userQuery = { email };
+          const updateUser = {
+            $set: {
+              role: "rider",
+            },
+          };
+          const userResult = await usersCollection.updateOne(
+            userQuery,
+            updateUser
+          );
+        }
+        res.send(result);
       }
-      res.send(result);
-    });
+    );
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("✅ Successfully connected to MongoDB!");
