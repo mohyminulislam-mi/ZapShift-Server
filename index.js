@@ -64,6 +64,17 @@ async function run() {
     const parcelsCollection = database.collection("parcels");
     const paymentCollection = database.collection("payments");
     const ridersCollection = database.collection("riders");
+
+    // must be used after verifyFBToken middleware
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded_email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      if (!user || user.role !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
     // users data into Database
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -78,13 +89,13 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyFirebaseToken, async (req, res) => {
       const query = {};
       const cursor = usersCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
-    app.patch("/users/:id/role", verifyFirebaseToken, async (req, res) => {
+    app.patch("/users/:id/role", verifyFirebaseToken, verifyAdmin , async (req, res) => {
       const id = req.params.id;
       const roleInfo = req.body;
       const query = { _id: new ObjectId(id) };
@@ -97,12 +108,12 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/users/:email/role', async (req, res) => {
+    app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
-      const query = { email }
-      const user = await usersCollection.findOne(query)
-      res.send({ role: user?.role || 'user'})
-    })
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ role: user?.role || "user" });
+    });
 
     // post parcel data into Database
     app.post("/parcels", async (req, res) => {
@@ -261,7 +272,7 @@ async function run() {
       res.send(result);
     });
     // rider patch apis
-    app.patch("/riders/:id", verifyFirebaseToken, async (req, res) => {
+    app.patch("/riders/:id", verifyFirebaseToken, verifyAdmin, async (req, res) => {
       const status = req.body.status;
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
