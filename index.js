@@ -69,7 +69,7 @@ async function run() {
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded_email;
       const query = { email };
-      const user = await userCollection.findOne(query);
+      const user = await usersCollection.findOne(query);
       if (!user || user.role !== "admin") {
         return res.status(403).send({ message: "forbidden access" });
       }
@@ -92,20 +92,19 @@ async function run() {
     app.get("/users", verifyFirebaseToken, async (req, res) => {
       const searchItems = req.query.searchText;
       console.log(searchItems);
-      
+
       let query = {};
       if (searchItems) {
-        query = { $or: [
-          { displayName: { $regex: searchItems, $options: "i" } },
-          { email: { $regex: searchItems, $options: "i" } },
-        ]} ;
+        query = {
+          $or: [
+            { displayName: { $regex: searchItems, $options: "i" } },
+            { email: { $regex: searchItems, $options: "i" } },
+          ],
+        };
       }
       console.log(query);
-      
-      const cursor = usersCollection
-        .find(query)
-        .sort({ createdAt: -1 })
-        .limit(2);
+
+      const cursor = usersCollection.find(query).sort({ createdAt: -1 });
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -145,10 +144,13 @@ async function run() {
     app.get("/parcels", async (req, res) => {
       const query = {};
       // find data with conditions
-      const { email } = req.query;
+      const { email, deliveryStatus } = req.query;
       // /parcels?email=''&
       if (email) {
         query.senderEmail = email;
+      }
+      if (deliveryStatus) {
+        query.deliveryStatus = deliveryStatus;
       }
       const options = { sort: { createdAt: -1 } };
       // --- end conditons for email get data
@@ -243,7 +245,8 @@ async function run() {
         const update = {
           $set: {
             paymentStatus: "paid",
-            trackinId: trackinId,
+            deliveryStatus: "pending-pickup",
+            trackingId: trackinId,
           },
         };
         const result = await parcelsCollection.updateOne(query, update);
@@ -282,12 +285,25 @@ async function run() {
     });
     // rider get apis
     app.get("/riders", async (req, res) => {
+      const { status, district, workStatus } = req.query;
       const query = {};
-      if (req.query.status) {
-        query.status = req.query.status;
+
+      console.log(status, district, workStatus);
+
+      if (status) {
+        query.status = status;
       }
+      if (district) {
+        query.district = district;
+      }
+      if (workStatus) {
+        query.workStatus = workStatus;
+      }
+
       const cursor = ridersCollection.find(query);
       const result = await cursor.toArray();
+      console.log(result);
+
       res.send(result);
     });
     // rider patch apis
@@ -302,6 +318,7 @@ async function run() {
         const updateStatus = {
           $set: {
             status: status,
+            workStatus: "available",
           },
         };
         const result = await ridersCollection.updateOne(query, updateStatus);
