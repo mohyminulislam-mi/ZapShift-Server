@@ -166,6 +166,36 @@ async function run() {
       const result = await parcelsCollection.findOne(query);
       res.send(result);
     });
+    app.patch("/parcels/:id", async (req, res) => {
+      const { riderId, riderName, riderEmail } = req.body;
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+
+      const updatedDoc = {
+        $set: {
+          deliveryStatus: "driver_assigned",
+          riderId: riderId,
+          riderName: riderName,
+          riderEmail: riderEmail,
+        },
+      };
+
+      const result = await parcelsCollection.updateOne(query, updatedDoc);
+
+      // update rider information
+      const riderQuery = { _id: new ObjectId(riderId) };
+      const riderUpdatedDoc = {
+        $set: {
+          workStatus: "in_delivery",
+        },
+      };
+      const riderResult = await ridersCollection.updateOne(
+        riderQuery,
+        riderUpdatedDoc
+      );
+
+      res.send(riderResult);
+    });
 
     // parcel delete options
     app.delete("/parcels/:id", async (req, res) => {
